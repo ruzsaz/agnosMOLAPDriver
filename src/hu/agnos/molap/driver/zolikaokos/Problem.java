@@ -1,0 +1,197 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package hu.agnos.molap.driver.zolikaokos;
+
+import hu.agnos.molap.Cube;
+import hu.agnos.molap.dimension.Dimension;
+import hu.agnos.molap.dimension.Hierarchy;
+import hu.agnos.molap.dimension.Node;
+import hu.agnos.molap.driver.util.PostfixCalculator;
+import hu.agnos.molap.measure.AbstractMeasure;
+import hu.agnos.molap.measure.CalculatedMeasure;
+import hu.agnos.molap.measure.Measures;
+import gnu.trove.list.array.TIntArrayList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+/**
+ *
+ * @author ruzsaz
+ */
+public class Problem {
+
+    public int[][] Oa, Ob, a, b;
+    private int drillVectorId;
+    private String[] header;
+    private final String baseVector;
+
+    public Problem(int drillVectorId, String baseVector) {
+        this.drillVectorId = drillVectorId;
+        this.baseVector = baseVector;
+    }
+
+    public Result compute(Cube cube) throws InterruptedException {
+        uploadIntervalAndHeader(cube.getDimensions(), cube.getHierarchyHeader().length, cube.getHierarchyIndex());
+        Algorithms algorithms = new Algorithms();
+
+        double[] calculatedValues = algorithms.calculateSumNyuszival2(Oa, Ob, a, b, cube.getCells().getCells());
+        String[] measureValues = getAllMeasureAsString(calculatedValues, cube.getMeasures());
+        return new Result(header, measureValues, drillVectorId);
+    }
+
+    /**
+     * Ez az eljárás feltölti az intervellum rendszereket, továbbá a header részt is kitölti.
+     * Mivel az intervallumok feltöltéséhez a Nodokat ki kell keresni, 
+     * így célszerű ebben a lépésben a headert is kitölteni (különben újból ki kell keresni a nodot).
+     * @param dimensions a kockában lévő dimenziók listája
+     * @param hierarchySize a kockában lévő hierarchiák száma
+     * @param hierarchyIndex egy olyan mátrix amelyben az első dimenzió elemszáma megegyezik a hierarchiák számával
+     *      a második dimenzió pedig megmondja, hogy az adott sorszámú hierarchia a kocka melyik dimenziójába, 
+     *      és dimenzión belül melyik hierarchiába esik.
+     */
+    private void uploadIntervalAndHeader(List<Dimension> dimensions, int hierarchySize, int[][] hierarchyIndex) {
+//        System.out.println("baseVector: " +baseVector);
+        String[] baseVectorArray = baseVector.split(":", -1);
+
+//        System.out.println("baseVectorArray: " + baseVectorArray.length);
+        this.header = new String[hierarchySize];
+
+        List< int[]> OaList = new ArrayList<>();
+        List< int[]> ObList = new ArrayList<>();
+        List< int[]> aList = new ArrayList<>();
+        List< int[]> bList = new ArrayList<>();
+
+        for (int i = 0; i < hierarchySize; i++) {
+
+            int dimIdx = hierarchyIndex[i][0];
+            int hierIdx = hierarchyIndex[i][1];
+
+            Dimension dimension = dimensions.get(dimIdx);
+            Hierarchy hierarchy = dimension.getHierarchyById(hierIdx);
+            Node hierarchyNode = null;
+            if (baseVectorArray[i] != null && !baseVectorArray[i].isEmpty()) {
+//                System.out.print("baseVectorArray[i] != null:  ");
+                String[] splitedNodePath = baseVectorArray[i].split(",");
+
+                int depth = splitedNodePath.length;
+
+                int huntedNodeId = Integer.parseInt(splitedNodePath[depth - 1]);
+
+                //base level szinten vagyunk?
+                if (depth == hierarchy.getMaxDepth()) {
+                    hierarchyNode = dimension.getBaseLevelNodes()[huntedNodeId];
+                } else {
+                    hierarchyNode = hierarchy.getNode(depth, huntedNodeId);
+                }
+
+            } else {
+//                System.out.print("baseVectorArray[i] == null:  ");
+                hierarchyNode = hierarchy.getRoot();
+            }
+//            System.out.println(hierarchyNode.getDataAsString());
+            this.header[i] = hierarchyNode.getDataAsString();
+
+            if (hierarchy.isOLAP()) {
+                OaList.add(hierarchyNode.getIntervalsLowerIndexes());
+                ObList.add(hierarchyNode.getIntervalsUpperIndexes());
+            } else {
+                aList.add(hierarchyNode.getIntervalsLowerIndexes());
+                bList.add(hierarchyNode.getIntervalsUpperIndexes());
+            }
+
+        }
+
+        int OaSize = OaList.size();
+        Oa = new int[OaSize][];
+        for (int i = 0; i < OaSize; i++) {
+            Oa[i] = OaList.get(i);
+        }
+
+        int ObSize = ObList.size();
+        Ob = new int[ObSize][];
+        for (int i = 0; i < ObSize; i++) {
+            Ob[i] = ObList.get(i);
+        }
+
+        int aSize = aList.size();
+        a = new int[aSize][];
+        for (int i = 0; i < aSize; i++) {
+            a[i] = aList.get(i);            
+        }
+        
+        int bSize = aList.size();
+        b = new int[bSize][];
+        for (int i = 0; i < bSize; i++) {
+            b[i] = bList.get(i);
+        }
+
+    }
+
+    /**
+     * Ez az érték a megkapott valós measure értékeket a kívánt formátumra
+     * alakítja. Ehhez a kalkulált measure-ök értékét meg kell határozni, majd
+     * a valós és kalkulált measure-ok sorrendjét a meta-ban (Measures osztály)
+     * meghatározott sorrendbe kell rendezni és végezetül a double értékeket
+     * vesszővel szeparált String értékekre kell alakítani.
+     *
+     * @param measureValues valós measure-ök tömbje
+     * @return a megkonstruált szting tömb, amelyben minden measure megfelelő
+     * sorrendben szerepel.
+     */
+    private String[] getAllMeasureAsString(double[] measureValues, Measures measures) {
+
+        int measureCnt = measures.getMeasures().size();
+        String[] result = new String[measureCnt];
+
+        int[] calculatedMeasureFlags = new int[measureCnt];
+        for (int i = 0; i < measureCnt; i++) {
+            AbstractMeasure member = measures.getMember(i);
+
+            if (member.isCalculatedMember()) {
+                String calculatedFormula = ((CalculatedMeasure) member).getFormula();
+                String[] formulaWithIndex = replaceMeasurUniqeNameToIndex(calculatedFormula, measures);
+                PostfixCalculator calculator = new PostfixCalculator();
+                Double d = calculator.calculate(formulaWithIndex, measureValues);
+                result[i] = d.toString();
+            } else {
+                String memberUniqeName = member.getName();
+                int idx = measures.getRealMeasureIdxByUniquName(memberUniqeName);
+                result[i] = Double.toString(measureValues[idx]);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Ez az eljárás a Calculated formulában lévő measur neveket lecseréli azok
+     * Cells -béli oszlopindexére
+     *
+     * @param calculatedFormula az átalakítandó formula
+     * @return ez eredeti formulanak egy olyan változata, amely split-elve van
+     * szőközönként és a measure nevek helyett azok indexei található
+     * @throws NumberFormatException
+     */
+    private String[] replaceMeasurUniqeNameToIndex(String calculatedFormula, Measures measures) throws NumberFormatException {
+        String[] calculatedFormulaSegments = calculatedFormula.split(" ");
+        String[] result = new String[calculatedFormulaSegments.length];
+        for (int i = 0; i < calculatedFormulaSegments.length; i++) {
+            if (calculatedFormulaSegments[i].equals(PostfixCalculator.ADD) || calculatedFormulaSegments[i].equals(PostfixCalculator.SUB) || calculatedFormulaSegments[i].equals(PostfixCalculator.MUL) || calculatedFormulaSegments[i].equals(PostfixCalculator.DIV)) {
+                result[i] = calculatedFormulaSegments[i];
+            } else {
+                int idx = measures.getRealMeasureIdxByUniquName(calculatedFormulaSegments[i]);
+                if (idx == -1) {
+                    Double d = Double.parseDouble(calculatedFormulaSegments[i]);
+                    result[i] = d.toString();
+                } else {
+                    result[i] = Integer.toString(idx);
+                }
+            }
+        }
+        return result;
+    }
+
+}

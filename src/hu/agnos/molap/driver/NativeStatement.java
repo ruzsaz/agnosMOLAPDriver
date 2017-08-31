@@ -1,0 +1,139 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package hu.agnos.molap.driver;
+
+import hu.agnos.molap.Cube;
+import hu.agnos.molap.driver.zolikaokos.DataRetriever;
+import hu.agnos.molap.driver.zolikaokos.Problem;
+import hu.agnos.molap.driver.zolikaokos.Result;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/**
+ *
+ * @author parisek
+ */
+public class NativeStatement {
+
+    private Cube cube;
+
+    public NativeStatement(Cube cube) {
+        this.cube = cube;
+    }
+
+    public ResultSet[] executeQueries(String baseVector, String drillVectors[]) {
+        int drillVectorsSize = drillVectors.length;
+        
+        
+        
+        ResultSet[] resultSet = new ResultSet[drillVectorsSize];        
+        DataRetriever retriever = new DataRetriever(cube);
+
+        for (int i = 0; i < drillVectors.length; i++) {
+            String[] newBaseVectorArray = null;
+            String drillVector = drillVectors[i];
+            
+            resultSet[i] = new ResultSet(drillVector);
+            
+            if (drillVector != null) {
+                String[] baseVectorArray = baseVector.split(":", -1);
+                String[] drillVectorArray = drillVector.split(":", -1);
+                NativeQueryGenerator queryGenerator = new NativeQueryGenerator(cube.getDimensions(), cube.getHierarchyIndex());
+                newBaseVectorArray = queryGenerator.getBaseVectorsFromDrillVector(baseVectorArray, drillVectorArray);
+            }
+
+            if (newBaseVectorArray != null) {
+                int rowCnt = newBaseVectorArray.length;
+                for (int j = 0; j < rowCnt; j++) {
+                    retriever.addProblem(new Problem(i, newBaseVectorArray[j]));
+                }
+            }
+        }
+        
+        List<Future<Result>> futures = retriever.computeAll();
+        
+        
+        List<List<Result>>  eredmeny = new ArrayList<>();
+        for(int i= 0; i < drillVectorsSize; i++){
+            List<Result> temp = new ArrayList<>();
+            eredmeny.add(temp);
+        }
+        
+         
+        
+        for(int i = 0; i < futures.size(); i++){
+             try {
+                    Result r = futures.get(i).get();
+//                    for(String s : r.getHeader()){
+//                        System.out.print(s + ", ");
+//                    }
+//                    System.out.println("");
+                    int drillVectorId = r.getDrillVectorId();
+                    List<Result> temp = eredmeny.get(drillVectorId);
+                    temp.add(r);                    
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(NativeStatement.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (ExecutionException ex) {
+                    Logger.getLogger(NativeStatement.class.getName()).log(Level.SEVERE, null, ex);
+                }
+        }
+        
+      
+        for(int i = 0; i < drillVectorsSize; i++){
+            resultSet[i].setResponse(eredmeny.get(i));         
+        }
+        
+        return resultSet;
+    }
+
+    public ResultSet executeQuery(String baseVector, String drillVector) {
+        ResultSet resultSet = null;
+        String[] newBaseVectorArray = null;
+
+        if (drillVector != null) {
+            String[] baseVectorArray = baseVector.split(":", -1);
+            String[] drillVectorArray = drillVector.split(":", -1);
+            NativeQueryGenerator queryGenerator = new NativeQueryGenerator(cube.getDimensions(), cube.getHierarchyIndex());
+
+            newBaseVectorArray = queryGenerator.getBaseVectorsFromDrillVector(baseVectorArray, drillVectorArray);
+
+        }
+
+        if (newBaseVectorArray != null) {
+            resultSet = new ResultSet(drillVector);
+            Result[] response = null;
+            int rowCnt = newBaseVectorArray.length;
+
+            DataRetriever retriever = new DataRetriever(cube);
+            for (int i = 0; i < rowCnt; i++) {
+                retriever.addProblem(new Problem(0, newBaseVectorArray[i]));
+            }
+
+            List<Future<Result>> futures = retriever.computeAll();
+
+            response = new Result[rowCnt];
+
+            for (int i = 0; i < rowCnt; i++) {
+                try {
+                    response[i] = futures.get(i).get();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(NativeStatement.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (ExecutionException ex) {
+                    Logger.getLogger(NativeStatement.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+//            resultSet.setResponse(response);
+
+        }
+        return resultSet;
+    }
+
+}
