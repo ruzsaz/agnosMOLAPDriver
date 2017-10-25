@@ -68,8 +68,10 @@ public class NativeStatement {
         
          
         
+        
         for(int i = 0; i < futures.size(); i++){
              try {
+                 
                     Result r = futures.get(i).get();
 //                    for(String s : r.getHeader()){
 //                        System.out.print(s + ", ");
