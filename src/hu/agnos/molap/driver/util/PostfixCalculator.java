@@ -19,6 +19,7 @@ public class PostfixCalculator {
     public static final String DIV = "/";
     public static final String SQU = "^";
     public static final String ABS = "|";
+    public static final String IS_ZERO = "?";
 
     public double calculate(String[] input, double[] measures) {
         String[] formula = replaceIndexToValue(input, measures);
@@ -44,7 +45,7 @@ public class PostfixCalculator {
     }
 
     private double handleCalculation(String[] el) {
-        double operand1, operand2;
+        double operand1, operand2, operand3;
         Stack<Double> stack = new Stack();
         for (int i = 0; i < el.length; i++) {
             if (el[i].equals(ADD) || el[i].equals(SUB) || el[i].equals(MUL) || el[i].equals(DIV)) {
@@ -99,7 +100,23 @@ public class PostfixCalculator {
                         break;
                     }
                 }
-            } else {
+                
+            } else if (el[i].equals(IS_ZERO)) {
+                operand3 = stack.pop();
+                operand2 = stack.pop();
+                operand1 = stack.pop();
+                switch (el[i]) {
+                    case IS_ZERO: {
+                        
+                        double local = (operand1 == 0) ? operand2 : operand3;
+                        stack.push(local);
+                        break;
+                    }
+                }
+            }
+            
+            
+            else {
                 stack.push(Double.parseDouble(el[i]));
             }
         }
