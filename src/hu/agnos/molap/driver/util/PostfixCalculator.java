@@ -26,6 +26,22 @@ public class PostfixCalculator {
         return handleCalculation(formula);
     }
 
+    public boolean isOperator(String s) {
+        boolean result = false;
+        switch (s) {
+            case ADD:
+            case SUB:
+            case MUL:
+            case DIV:
+            case SQU:
+            case ABS:
+            case IS_ZERO:
+                result = true;
+                break;
+        }
+        return result;
+    }
+
     private String[] replaceIndexToValue(String[] inputs, double[] measures) {
         String[] outputs = new String[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
@@ -100,23 +116,20 @@ public class PostfixCalculator {
                         break;
                     }
                 }
-                
+
             } else if (el[i].equals(IS_ZERO)) {
                 operand3 = stack.pop();
                 operand2 = stack.pop();
                 operand1 = stack.pop();
                 switch (el[i]) {
                     case IS_ZERO: {
-                        
+
                         double local = (operand1 == 0) ? operand2 : operand3;
                         stack.push(local);
                         break;
                     }
                 }
-            }
-            
-            
-            else {
+            } else {
                 stack.push(Double.parseDouble(el[i]));
             }
         }

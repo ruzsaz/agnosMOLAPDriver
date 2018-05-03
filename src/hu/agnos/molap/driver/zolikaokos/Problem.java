@@ -178,8 +178,9 @@ public class Problem {
     private String[] replaceMeasurUniqeNameToIndex(String calculatedFormula, Measures measures) throws NumberFormatException {
         String[] calculatedFormulaSegments = calculatedFormula.split(" ");
         String[] result = new String[calculatedFormulaSegments.length];
+        PostfixCalculator calculator = new PostfixCalculator();
         for (int i = 0; i < calculatedFormulaSegments.length; i++) {
-            if (calculatedFormulaSegments[i].equals(PostfixCalculator.ADD) || calculatedFormulaSegments[i].equals(PostfixCalculator.SUB) || calculatedFormulaSegments[i].equals(PostfixCalculator.MUL) || calculatedFormulaSegments[i].equals(PostfixCalculator.DIV)) {
+            if ( calculator.isOperator(calculatedFormulaSegments[i]) ) {
                 result[i] = calculatedFormulaSegments[i];
             } else {
                 int idx = measures.getRealMeasureIdxByUniquName(calculatedFormulaSegments[i]);
