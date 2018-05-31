@@ -24,7 +24,7 @@ public class DataRetriever {
     private List<Problem> problems;
 //    private double[][] facts;
     private Cube cube;
-    private List<Callable<Result>> tasks;
+    private List<Callable<ResultElement>> tasks;
     private final int numberOfProcessors;
 
     public DataRetriever(Cube cube) {
@@ -46,9 +46,9 @@ public class DataRetriever {
     }
 
     public void addProblem(Problem problem) {
-        Callable<Result> c = new Callable<Result>() {
+        Callable<ResultElement> c = new Callable<ResultElement>() {
             @Override
-            public Result call() throws Exception {
+            public ResultElement call() throws Exception {
 //                Runtime.getRuntime().gc();
 //                System.out.println("Free after runs: " + Runtime.getRuntime().freeMemory() / 1024 / 1024 + " Mbyte");
                 return problem.compute(cube);
@@ -60,13 +60,13 @@ public class DataRetriever {
     }
 
    
-    public List<Future<Result>> computeAll() {
+    public List<Future<ResultElement>> computeAll() {
         //ExecutorService exec = Executors.newCachedThreadPool();
         // some other exectuors you could try to see the different behaviours
         ExecutorService exec = Executors.newFixedThreadPool(numberOfProcessors);
         //ExecutorService exec = Executors.newFixedThreadPool(4);
         //ExecutorService exec = Executors.newSingleThreadExecutor();
-        List<Future<Result>> results = null;
+        List<Future<ResultElement>> results = null;
         try {
 
 //            long begin = System.nanoTime();

@@ -5,7 +5,7 @@
  */
 package hu.agnos.molap.driver;
 
-import hu.agnos.molap.driver.zolikaokos.Result;
+import hu.agnos.molap.driver.zolikaokos.ResultElement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,8 +17,7 @@ public class ResultSet implements java.io.Serializable {
 
     private static final long serialVersionUID = -8940196742313994740L;
     private final String name;
-    private List<Result> response;
-    
+    private List<ResultElement> response;
 
     public ResultSet(String name) {
         this.name = name;
@@ -29,19 +28,34 @@ public class ResultSet implements java.io.Serializable {
         return name;
     }
 
-    public List<Result> getResponse() {
+    public List<ResultElement> getResponse() {
         return response;
     }
 
-    public void addResponse(Result result) {
+    public void addResponse(ResultElement result) {
         this.response.add(result);
     }
 
-    public void setResponse(List<Result> response) {
+    public void setResponse(List<ResultElement> response) {
         this.response = response;
     }
-    
-    
-   
-   
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("ResultSet{" + "name=" + name + ", response:");
+        for (ResultElement e : this.response) {
+            sb.append("\n\t").append(e.toString());
+        }
+        sb.append("\n}");
+        return sb.toString();
+    }
+
+    public ResultSet deepCopy() {
+        ResultSet result = new ResultSet(new String(name));
+        for (ResultElement r : this.response) {
+            result.addResponse(r);
+        }
+        return result;
+    }
+
 }

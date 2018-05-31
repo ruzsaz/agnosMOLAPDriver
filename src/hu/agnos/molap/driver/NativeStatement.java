@@ -8,7 +8,7 @@ package hu.agnos.molap.driver;
 import hu.agnos.molap.Cube;
 import hu.agnos.molap.driver.zolikaokos.DataRetriever;
 import hu.agnos.molap.driver.zolikaokos.Problem;
-import hu.agnos.molap.driver.zolikaokos.Result;
+import hu.agnos.molap.driver.zolikaokos.ResultElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -57,12 +57,12 @@ public class NativeStatement {
             }
         }
         
-        List<Future<Result>> futures = retriever.computeAll();
+        List<Future<ResultElement>> futures = retriever.computeAll();
         
         
-        List<List<Result>>  eredmeny = new ArrayList<>();
+        List<List<ResultElement>>  eredmeny = new ArrayList<>();
         for(int i= 0; i < drillVectorsSize; i++){
-            List<Result> temp = new ArrayList<>();
+            List<ResultElement> temp = new ArrayList<>();
             eredmeny.add(temp);
         }
         
@@ -72,13 +72,13 @@ public class NativeStatement {
         for(int i = 0; i < futures.size(); i++){
              try {
                  
-                    Result r = futures.get(i).get();
+                    ResultElement r = futures.get(i).get();
 //                    for(String s : r.getHeader()){
 //                        System.out.print(s + ", ");
 //                    }
 //                    System.out.println("");
                     int drillVectorId = r.getDrillVectorId();
-                    List<Result> temp = eredmeny.get(drillVectorId);
+                    List<ResultElement> temp = eredmeny.get(drillVectorId);
                     temp.add(r);                    
                 } catch (InterruptedException ex) {
                     Logger.getLogger(NativeStatement.class.getName()).log(Level.SEVERE, null, ex);
@@ -110,7 +110,7 @@ public class NativeStatement {
 
         if (newBaseVectorArray != null) {
             resultSet = new ResultSet(drillVector);
-            Result[] response = null;
+            ResultElement[] response = null;
             int rowCnt = newBaseVectorArray.length;
 
             DataRetriever retriever = new DataRetriever(cube);
@@ -118,9 +118,9 @@ public class NativeStatement {
                 retriever.addProblem(new Problem(0, newBaseVectorArray[i]));
             }
 
-            List<Future<Result>> futures = retriever.computeAll();
+            List<Future<ResultElement>> futures = retriever.computeAll();
 
-            response = new Result[rowCnt];
+            response = new ResultElement[rowCnt];
 
             for (int i = 0; i < rowCnt; i++) {
                 try {

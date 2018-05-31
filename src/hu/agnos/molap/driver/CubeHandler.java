@@ -9,6 +9,7 @@ import hu.agnos.molap.Cube;
 import hu.agnos.molap.dimension.Node;
 import hu.agnos.molap.dimension.Dimension;
 import hu.agnos.molap.dimension.Hierarchy;
+import hu.agnos.molap.measure.Cells;
 
 /**
  *
@@ -42,6 +43,7 @@ public class CubeHandler {
 //    
 //    private final Measures measures;
 //
+
     public CubeHandler(Cube cube) {
 //        this.cells = cube.getCells();
 
@@ -55,25 +57,41 @@ public class CubeHandler {
     }
 //    
 //    
-    public void printDims(Cube cube){
-        for(Dimension dim : cube.getDimensions()){
-            for(Hierarchy hier : dim.getHierarchies()){
+
+    public void printDims(Cube cube) {
+        for (Dimension dim : cube.getDimensions()) {
+            for (Hierarchy hier : dim.getHierarchies()) {
                 System.out.println("Hier name : " + hier.getHierarchyUniqueName());
-                
-                Node [][] nodes = hier.getNodes();
-                
-                for(int i= 0; i < nodes.length; i++){
-                    for(int j =0; j < nodes[i].length; j++){
-                        System.out.println(""+i+","+j+": " +nodes[i][j]);
+
+                Node[][] nodes = hier.getNodes();
+
+                for (int i = 0; i < nodes.length; i++) {
+                    for (int j = 0; j < nodes[i].length; j++) {
+                        System.out.println("" + i + "," + j + ": " + nodes[i][j]);
                     }
                 }
             }
         }
     }
 //
+
     public String[] getHierarchyHeader() {
         return hierarchyHeader;
     }
+
+    public void printCells(Cube cube) {
+        Cells c = cube.getCells();
+
+        double[][] cArray = c.getCells();
+        for (int j = 0; j < cArray[0].length; j++) {
+            for (int i = 0; i < cArray.length; i++) {
+
+                System.out.print("\t" + cArray[i][j]);
+            }
+            System.out.println("");
+        }
+    }
+
 //
 //    public int[][] getHierarchyIndex() {
 //        return hierarchyIndex;
@@ -86,7 +104,8 @@ public class CubeHandler {
 //    
 //    
 //    
-    public int getHierarchyIndexByUniqueName(String uniqueName) {        
+
+    public int getHierarchyIndexByUniqueName(String uniqueName) {
         for (int i = 0; i < hierarchyHeader.length; i++) {
             if (hierarchyHeader[i].equals(uniqueName)) {
                 return i;
@@ -148,7 +167,7 @@ public class CubeHandler {
 //            }
 //            hierarchyHeaderResult[i] = member.getDataAsString();
 //
-//            if (hierarchy.isOLAP()) {
+//            if (hierarchy.isPartitioned()) {
 //                OaList.put(i, member.getIntervalsLowerIndexes());
 //                ObList.put(i, member.getIntervalsUpperIndexes());
 //            } else {
@@ -272,10 +291,13 @@ public class CubeHandler {
 //        return dimensions;
 //    }
 //
+
     /**
      * Egy measure (akár kalkulált is) Measures-béli indexét adja meg
+     *
      * @param measureName a keresett measure neve
-     * @return a measure Measures-béli indexe, vagy ha az nem található meg, akkor -1
+     * @return a measure Measures-béli indexe, vagy ha az nem található meg,
+     * akkor -1
      */
     public int getMeasureIndexByUniqueName(String measureName) {
         for (int i = 0; i < this.measureHeader.length; i++) {

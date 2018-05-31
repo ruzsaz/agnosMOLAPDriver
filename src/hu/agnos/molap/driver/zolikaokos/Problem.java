@@ -34,13 +34,13 @@ public class Problem {
         this.baseVector = baseVector;
     }
 
-    public Result compute(Cube cube) throws InterruptedException {
+    public ResultElement compute(Cube cube) throws InterruptedException {
         uploadIntervalAndHeader(cube.getDimensions(), cube.getHierarchyHeader().length, cube.getHierarchyIndex());
         Algorithms algorithms = new Algorithms();
 
         double[] calculatedValues = algorithms.calculateSumNyuszival2(Oa, Ob, a, b, cube.getCells().getCells());
-        String[] measureValues = getAllMeasureAsString(calculatedValues, cube.getMeasures());
-        return new Result(header, measureValues, drillVectorId);
+        double[] measureValues = getAllMeasureAsString(calculatedValues, cube.getMeasures());
+        return new ResultElement(header, measureValues, drillVectorId);
     }
 
     /**
@@ -95,7 +95,7 @@ public class Problem {
 //            System.out.println(hierarchyNode.getDataAsString());
             this.header[i] = hierarchyNode.getDataAsString();
 
-            if (hierarchy.isOLAP()) {
+            if (hierarchy.isPartitioned()) {
                 OaList.add(hierarchyNode.getIntervalsLowerIndexes());
                 ObList.add(hierarchyNode.getIntervalsUpperIndexes());
             } else {
@@ -142,10 +142,10 @@ public class Problem {
      * @return a megkonstruált szting tömb, amelyben minden measure megfelelő
      * sorrendben szerepel.
      */
-    private String[] getAllMeasureAsString(double[] measureValues, Measures measures) {
+    private double[] getAllMeasureAsString(double[] measureValues, Measures measures) {
 
         int measureCnt = measures.getMeasures().size();
-        String[] result = new String[measureCnt];
+        double[] result = new double[measureCnt];
 
         int[] calculatedMeasureFlags = new int[measureCnt];
         for (int i = 0; i < measureCnt; i++) {
@@ -156,11 +156,11 @@ public class Problem {
                 String[] formulaWithIndex = replaceMeasurUniqeNameToIndex(calculatedFormula, measures);
                 PostfixCalculator calculator = new PostfixCalculator();
                 Double d = calculator.calculate(formulaWithIndex, measureValues);
-                result[i] = d.toString();
+                result[i] = d;
             } else {
                 String memberUniqeName = member.getName();
                 int idx = measures.getRealMeasureIdxByUniquName(memberUniqeName);
-                result[i] = Double.toString(measureValues[idx]);
+                result[i] = measureValues[idx];
             }
         }
         return result;
