@@ -13,9 +13,7 @@ import hu.agnos.molap.driver.util.PostfixCalculator;
 import hu.agnos.molap.measure.AbstractMeasure;
 import hu.agnos.molap.measure.CalculatedMeasure;
 import hu.agnos.molap.measure.Measures;
-import gnu.trove.list.array.TIntArrayList;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -25,7 +23,7 @@ import java.util.List;
 public class Problem {
 
     public int[][] Oa, Ob, a, b;
-    private int drillVectorId;
+    private final int drillVectorId;
     private String[] header;
     private final String baseVector;
 
@@ -37,7 +35,7 @@ public class Problem {
     public ResultElement compute(Cube cube) throws InterruptedException {
         uploadIntervalAndHeader(cube.getDimensions(), cube.getHierarchyHeader().length, cube.getHierarchyIndex());
         Algorithms algorithms = new Algorithms();
-
+        
         double[] calculatedValues = algorithms.calculateSumNyuszival2(Oa, Ob, a, b, cube.getCells().getCells());
         double[] measureValues = getAllMeasureAsString(calculatedValues, cube.getMeasures());
         return new ResultElement(header, measureValues, drillVectorId);
@@ -72,7 +70,7 @@ public class Problem {
 
             Dimension dimension = dimensions.get(dimIdx);
             Hierarchy hierarchy = dimension.getHierarchyById(hierIdx);
-            Node hierarchyNode = null;
+            Node hierarchyNode;
             if (baseVectorArray[i] != null && !baseVectorArray[i].isEmpty()) {
 //                System.out.print("baseVectorArray[i] != null:  ");
                 String[] splitedNodePath = baseVectorArray[i].split(",");
